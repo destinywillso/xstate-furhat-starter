@@ -24,33 +24,150 @@ async function fhSay(text: string) {
   });
 }
 
-async function newGesture() {
+//Gesture 1
+async function ShakeHeadGesture() {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
-  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=true`, {
     method: "POST",
     headers: myHeaders,
     body: JSON.stringify({
-      name: "newGesture",
+      name: "ShakeHeadGesture",
       frames: [
         {
-          time: [], //ADD THE TIME FRAME OF YOUR LIKING
+          time: [0.1,0.5,0.8], //ADD THE TIME FRAME OF YOUR LIKING
           persist: true,
           params: {
+            "NECK_PAN": -50.0,
             //ADD PARAMETERS HERE IN ORDER TO CREATE A GESTURE
           },
         },
         {
-          time: [], //ADD TIME FRAME IN WHICH YOUR GESTURE RESETS
+          time: [1.0], //ADD TIME FRAME IN WHICH YOUR GESTURE RESETS
           persist: true,
           params: {
-            reset: true,
+          reset: true,
           },
         },
         //ADD MORE TIME FRAMES IF YOUR GESTURE REQUIRES THEM
+        {
+          time: [1.1,1.5,2], 
+          persist: true,
+          params: {
+            "NECK_PAN": 50.0,
+          },
+        },
+                {
+          time: [2.5],
+          persist: true,
+          params: {
+          reset: true,
+          },
+        },
       ],
+      name1: "first",
       class: "furhatos.gestures.Gesture",
     }),
+  });
+}
+
+//Gesture 2
+async function EyeGesture() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=true`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "EyeGesture",
+      frames: [
+        {
+          time: [0.1,0.5,0.8], 
+          persist: true,
+          params: {
+            "LOOK_LEFT": 1,
+          },
+        },
+        {
+          time: [1.0], 
+          persist: true,
+          params: {
+          reset: true,
+          },
+        },
+        {
+          time: [1.1,1.5,2], 
+          persist: true,
+          params: {
+            "LOOK_RIGHT": 1,
+          },
+        },
+                {
+          time: [2.5],
+          persist: true,
+          params: {
+          reset: true,
+          },
+        },
+      ],
+      name2: "Second",
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+//Gesture 3 with audio
+async function WhisperGesture() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=true`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "MouthGesture",
+      frames: [
+        {
+          time: [0,5,10], 
+          persist: true,
+          params: {
+            "PHONE_AAH": 1,
+          },
+        },
+        {
+          time: [11], 
+          persist: true,
+          params: {
+          reset: true,
+          },
+        },
+        {
+          time: [11.1,11.5,28], 
+          persist: true,
+          params: {
+            "PHONE_B_M_P": 1,
+          },
+        },
+                {
+          time: [28],
+          persist: true,
+          params: {
+          reset: true,
+          },
+        },
+      ],
+      name2: "Second",
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+async function fhAttendClosestUser() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+  return fetch(`http://${FURHATURI}/furhat/attend?user=CLOSEST`, {
+    method: "POST",
+    headers: myHeaders,
+    body: "", 
   });
 }
 
@@ -66,6 +183,41 @@ async function fhGesture(text: string) {
     },
   );
 }
+
+async function SpeakWithShake(text: string) {
+  return Promise.all([
+    fhSay(text),           
+    ShakeHeadGesture(),    
+  ]);
+}
+
+async function SpeakWithEye(text: string) {
+  return Promise.all([
+    fhSay(text),
+    EyeGesture(),
+  ]);
+}
+
+async function fhAudio() {
+  return fetch(
+    `http://${FURHATURI}/furhat/say?url=${encodeURIComponent(
+      "classpath:whisper-voices-1-193087.wav"
+    )}&blocking=true&speech=false`, 
+    {
+      method: "POST",
+      headers: { accept: "application/json" },
+    }
+  );
+}
+
+async function fhWhisperWithAudio() {
+  await Promise.all([
+    WhisperGesture(),  
+    fhAudio(),         
+  ]);
+}
+
+
 
 async function fhListen() {
   const myHeaders = new Headers();
@@ -89,9 +241,21 @@ const dmMachine = setup({
       return fhSay("Hi");
     }),
     fhL: fromPromise<any, null>(async () => {
-     return fhListen();
+      return fhListen();
    }),
-  },
+    fhAttendClosestUser: fromPromise<any, null>(async () => {
+      return fhAttendClosestUser();
+   }),
+    fhShakeHead1: fromPromise<any, null>(async () => {
+      return ShakeHeadGesture();
+   }),
+    fhEye: fromPromise<any, null>(async () => {
+      return EyeGesture();
+   }),
+   fhWhisper: fromPromise<any, null>(async () => {
+      return fhWhisperWithAudio();
+}),
+  }
 }).createMachine({
   id: "root",
   initial: "Start",
@@ -102,7 +266,21 @@ const dmMachine = setup({
         src: "fhHello",      
         input: null,
         onDone: {
-          target: "Listen",
+          target: "GetClosestUser",
+          actions: async({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
+    },
+    GetClosestUser:{
+      invoke:{
+        src: "fhAttendClosestUser",
+        input: null,
+        onDone: {
+          target: "ShakeHeadGesture1",
           actions: ({ event }) => console.log(event.output),
         },
         onError: {
@@ -111,9 +289,57 @@ const dmMachine = setup({
         },
       },
     },
-    Listen: {
+
+    ShakeHeadGesture1:{
+      invoke:{
+        src: fromPromise(async () => SpeakWithShake("I am shaking my head now")),
+        input: null,
+        onDone: {
+          target: "EyeGesture",
+          action: ({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
     },
-    Fail: {},
+
+    EyeGesture:{
+      invoke:{
+        src: fromPromise(async () => SpeakWithEye("Look at my eyes")),
+        input: null,
+        onDone: {
+          target: "Whisper",
+          action: ({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
+    },
+
+    Whisper:{
+      invoke:{
+        src: "fhWhisper",
+        input: null,
+        onDone: {
+          target: "Done",
+          action: ({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
+    },
+    Done:{
+      type: "final"
+    },
+    Fail:{
+      type: "final"
+    }
   },
 });
 
@@ -124,3 +350,4 @@ actor.subscribe((snapshot) => {
   console.log(snapshot.value);
 });
 
+//yarn tsx src/main.ts
