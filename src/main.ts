@@ -65,7 +65,6 @@ async function ShakeHeadGesture() {
           },
         },
       ],
-      name1: "first",
       class: "furhatos.gestures.Gesture",
     }),
   });
@@ -110,7 +109,6 @@ async function EyeGesture() {
           },
         },
       ],
-      name2: "Second",
       class: "furhatos.gestures.Gesture",
     }),
   });
@@ -127,27 +125,35 @@ async function WhisperGesture() {
       name: "MouthGesture",
       frames: [
         {
-          time: [0,5,10], 
+          time: [0.5], 
           persist: true,
           params: {
             "PHONE_AAH": 1,
+            "PHONE_B_M_P": 0,
+            "NECK_ROLL": 25,
+            "NECK_PAN": -25,
+            "NECK_TILT": 5
           },
         },
         {
-          time: [11], 
+          time: [15.5], 
           persist: true,
           params: {
           reset: true,
           },
         },
         {
-          time: [11.1,11.5,28], 
+          time: [16], 
           persist: true,
           params: {
+            "PHONE_AAH": 0,
             "PHONE_B_M_P": 1,
+            "NECK_ROLL": -25,
+            "NECK_PAN": 25,
+            "NECK_TILT": -5
           },
         },
-                {
+        {
           time: [28],
           persist: true,
           params: {
@@ -155,11 +161,11 @@ async function WhisperGesture() {
           },
         },
       ],
-      name2: "Second",
       class: "furhatos.gestures.Gesture",
     }),
   });
 }
+
 
 async function fhAttendClosestUser() {
   const myHeaders = new Headers();
@@ -199,13 +205,15 @@ async function SpeakWithEye(text: string) {
 }
 
 async function fhAudio() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
   return fetch(
     `http://${FURHATURI}/furhat/say?url=${encodeURIComponent(
-      "classpath:whisper-voices-1-193087.wav"
+      "https://raw.githubusercontent.com/destinywillso/xstate-furhat-starter/master/src/whisper-voices-1-193087.wav"
     )}&blocking=true&speech=false`, 
     {
       method: "POST",
-      headers: { accept: "application/json" },
+      headers: myHeaders,
     }
   );
 }
@@ -216,7 +224,6 @@ async function fhWhisperWithAudio() {
     fhAudio(),         
   ]);
 }
-
 
 
 async function fhListen() {
